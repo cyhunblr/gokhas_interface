@@ -1,0 +1,7 @@
+<launch>
+    <!-- Test için kamera simülasyon nodunu başlat -->
+    <node pkg="gokhas_interface" type="camera_publisher.py" name="camera_publisher_node" output="screen" />
+    
+    <!-- Ana arayüz uygulamasını başlat -->
+    <node pkg="gokhas_interface" type="launch_interface.py" name="qt_interface_node" output="screen" />
+</launch>
