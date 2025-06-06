@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -- coding: UTF-8 --
+
 import sys
 from PyQt6.QtWidgets import QApplication
 from my_qt_ros_interface.ui.main_window import MainWindow

@@ -1,7 +1,9 @@
+#!/usr/bin/env python3
+# -- coding: UTF-8 --
+
 import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
-import cv2
 from PyQt6.QtGui import QImage, QPixmap
 from PyQt6.QtCore import Qt
 
@@ -10,15 +12,18 @@ class ROSBridge:
         self.main_window = main_window
         self.bridge = CvBridge()
         
-        # ROS düğümünü başlat
-        if not rospy.get_node_uri():
-            rospy.init_node('qt_interface_node', anonymous=True)
+        # ROS node zaten başlatılmış olmalı, sadece kontrol et
+        try:
+            rospy.get_name()  # Node başlatılmış mı kontrol et
+        except:
+            rospy.logerr("ROS node başlatılmamış! Önce rospy.init_node() çağırın.")
+            return
             
         # Görüntü konusuna abone ol
-        self.image_sub = rospy.Subscriber('/camera/image_raw', Image, 
+        self.image_sub = rospy.Subscriber('/zedm/zed_node/left/yolo_image', Image, 
                                          self.image_callback, queue_size=1)
-        rospy.loginfo("ROS Bridge başlatıldı. /camera/image_raw konusuna abone olundu.")
-    
+        rospy.loginfo("ROS Bridge başlatıldı. YOLOv8 konusuna abone olundu.")
+
     def image_callback(self, msg):
         try:
             # ROS görüntüsünü OpenCV formatına dönüştür
@@ -33,13 +38,27 @@ class ROSBridge:
             # Qt görüntüsünü pixmap'e dönüştür
             pixmap = QPixmap.fromImage(qt_image)
             
-            # Görüntüyü etiket boyutuna ölçeklendir
-            scaled_pixmap = pixmap.scaled(self.main_window.image_label.width(),
-                                      self.main_window.image_label.height(),
-                                      Qt.AspectRatioMode.KeepAspectRatio)
-            
-            # Ana pencereye görüntüyü güncelleme gönder
-            self.main_window.update_image(scaled_pixmap)
+            # main_window'da image_label var mı kontrol et
+            if hasattr(self.main_window, 'image_label') and self.main_window.image_label:
+                # Görüntüyü etiket boyutuna ölçeklendir
+                scaled_pixmap = pixmap.scaled(
+                    self.main_window.image_label.width(),
+                    self.main_window.image_label.height(),
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation
+                )
+                
+                # Ana pencereye görüntüyü güncelleme gönder
+                if hasattr(self.main_window, 'update_image'):
+                    self.main_window.update_image(scaled_pixmap)
+                else:
+                    rospy.logwarn("MainWindow'da update_image metodu bulunamadı!")
             
         except Exception as e:
             rospy.logerr(f"Görüntü dönüştürme hatası: {e}")
+
+    def shutdown(self):
+        """ROS bridge'i temiz şekilde kapat"""
+        if hasattr(self, 'image_sub'):
+            self.image_sub.unregister()
+        rospy.loginfo("ROS Bridge kapatıldı.")

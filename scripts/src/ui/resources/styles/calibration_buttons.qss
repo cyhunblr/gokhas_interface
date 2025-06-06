@@ -1,0 +1,45 @@
+/* Varsayılan Kalibrasyon Butonu */
+.calibration-default {
+    background-color: #cccccc;
+    color: black;
+    border: 1px solid #888888;
+    border-radius: 5px;
+    padding: 6px;
+    font-weight: bold;
+}
+
+.calibration-default:hover {
+    background-color: #e0e0e0;
+}
+
+.calibration-default:pressed {
+    background-color: #b0b0b0;
+}
+
+/* Sarı (İşlem Yapılıyor) */
+.calibration-processing {
+    background-color: #ffe066;
+    color: black;
+    border: 1px solid #bba100;
+    border-radius: 5px;
+    padding: 6px;
+    font-weight: bold;
+}
+
+.calibration-processing:hover {
+    background-color: #ffed80;
+}
+
+/* Yeşil (Tamamlandı) */
+.calibration-completed {
+    background-color: #55bb55;
+    color: white;
+    border: 1px solid #339933;
+    border-radius: 5px;
+    padding: 6px;
+    font-weight: bold;
+}
+
+.calibration-completed:hover {
+    background-color: #77cc77;
+}

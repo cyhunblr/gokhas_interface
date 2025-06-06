@@ -1,0 +1,32 @@
+/* Normal Tema Butonu */
+.theme-button-normal {
+    background-color: #f0f0f0;
+    border: 1px solid #cccccc;
+    border-radius: 17px;
+    font-size: 16px;
+}
+
+.theme-button-normal:hover {
+    background-color: #e0e0e0;
+}
+
+.theme-button-normal:pressed {
+    background-color: #d0d0d0;
+}
+
+/* Aktif Tema Butonu */
+.theme-button-active {
+    background-color: #0078d4;
+    color: white;
+    border: 2px solid #005a9e;
+    border-radius: 17px;
+    font-size: 16px;
+}
+
+.theme-button-active:hover {
+    background-color: #1088e4;
+}
+
+.theme-button-active:pressed {
+    background-color: #0066c0;
+}

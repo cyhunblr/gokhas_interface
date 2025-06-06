@@ -1,29 +1,79 @@
 #!/usr/bin/env python3
+# -- coding: UTF-8 --
 
 import sys
 import os
+import signal
 import rospy
 from PyQt6.QtWidgets import QApplication
-
-# src dizinini PYTHONPATH'e ekle
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-SRC_DIR = os.path.join(SCRIPT_DIR, 'src')
-sys.path.insert(0, SRC_DIR)
+from PyQt6.QtCore import QTimer
 
 from ui.main_window import MainWindow
 
+# Global flag to prevent multiple shutdowns
+shutdown_initiated = False
+
+def signal_handler(sig, frame): 
+    """SIGINT/SIGTERM signal handler"""
+    global shutdown_initiated
+    if shutdown_initiated:
+        return
+    shutdown_initiated = True
+    
+    print("Shutdown signal received! Clean shutdown started...")
+    try:
+        if not rospy.is_shutdown():
+            rospy.signal_shutdown("Shutdown initiated!")
+    except:
+        pass
+    
+    # Force quit Qt application
+    app = QApplication.instance()
+    if app:
+        app.quit()
+    sys.exit(0)
+
 def main():
-    rospy.init_node('qt_ros_interface')
+    global shutdown_initiated
+    
+    # Register signal handlers
+    signal.signal(signal.SIGINT, signal_handler)    
+    signal.signal(signal.SIGTERM, signal_handler)   
+    
+    # Start ROS node
+    rospy.init_node('qt_interface_node', anonymous=True) 
+    
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
     
-    timer = app.processEvents
-    while not rospy.is_shutdown():
-        timer()
-        rospy.sleep(0.01)
+    # Qt Timer for ROS integration
+    timer = QTimer()
+    timer.timeout.connect(lambda: None) 
+    timer.start(10)
     
-    sys.exit(app.exec())
+    # Safe shutdown handler - prevent infinite loop
+    def safe_shutdown_handler():
+        global shutdown_initiated
+        if shutdown_initiated:
+            return
+        shutdown_initiated = True
+        
+        try:
+            if not rospy.is_shutdown():
+                rospy.signal_shutdown("Qt application closing!") 
+        except:
+            pass
+    
+    # This connection only works when Qt window is closed
+    app.aboutToQuit.connect(safe_shutdown_handler)  
+    
+    try:
+        rospy.loginfo("Qt ROS Interface started!")  
+        exit_code = app.exec()
+        sys.exit(exit_code)
+    except KeyboardInterrupt:
+        signal_handler(signal.SIGINT, None)
 
 if __name__ == "__main__":
     main()

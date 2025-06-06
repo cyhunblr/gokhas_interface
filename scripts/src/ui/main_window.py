@@ -1,10 +1,17 @@
+#!/usr/bin/env python3
+# -- coding: UTF-8 --
+
 from PyQt6.QtWidgets import (
     QMainWindow, QVBoxLayout, QHBoxLayout, QGridLayout,
     QPushButton, QWidget, QLabel, QFrame, QCheckBox, QApplication,
     QSizePolicy, QSlider, QToolButton, QMessageBox, QStyle
 )
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import Qt, QSize, QTimer
 from PyQt6.QtGui import QPixmap, QImage, QIcon
+
+from ui.resources.resource import resource_manager
+from ui.control_handlers import ControlHandlers
+
 import rospy
 import sys
 import os
@@ -35,7 +42,21 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("GokHAS Central Control Interface")
         self.setGeometry(100, 100, 1200, 800)
-
+        
+        # Shutdown flag ekle
+        self.shutdown_initiated = False
+        
+        # Control handlers'ı başlat
+        self.control_handlers = ControlHandlers(self)
+        
+        # UI bileşenlerini oluştur
+        self.init_ui()
+        
+        # ROS bridge'i başlat
+        self.ros_bridge = ROSBridge(self)
+        
+    def init_ui(self):     
+        """UI bileşenlerini başlat - TAM ARAYÜZ"""
         # Ana widget ve grid layout (2 sütun, 2 satır)
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -50,8 +71,9 @@ class MainWindow(QMainWindow):
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setStyleSheet("background-color: black; border: 2px solid red;")
         self.image_label.setMinimumHeight(350)
+        self.image_label.setText("Kamera görüntüsü bekleniyor...")
         grid.addWidget(self.image_label, 0, 0)
-        
+
         # 1. sütun 2. satır: 2'ye bölünmüş boş alan
         bottom_row_widget = QWidget()
         bottom_row_widget.setStyleSheet("border: 2px solid red;")
@@ -66,7 +88,7 @@ class MainWindow(QMainWindow):
         bottom_row_layout.addWidget(left_bottom_col2)
         grid.addWidget(bottom_row_widget, 1, 0)
 
-        # --- BURASI YENİ EKLENECEK KISIM ---
+        # --- KONTROL PANELLERİ ---
         # left_bottom_col1 için:
         left_col1_vlayout = QVBoxLayout(left_bottom_col1)
         left_col1_vlayout.setSpacing(15)
@@ -77,59 +99,54 @@ class MainWindow(QMainWindow):
         left_col2_vlayout.setSpacing(15)
         left_col2_vlayout.setContentsMargins(10, 10, 10, 10)
 
-        # Başlıklar (aynı stil ve hizalama)
-        label_style = "font-size: 18px; font-weight: bold;"
+        # Başlıklar
         control_label = QLabel("MANUEL JOINT and EFFECTOR CONTROL")
         control_label.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
-        control_label.setStyleSheet(label_style)
+        control_label.setStyleSheet("font-size: 18px; font-weight: bold;")  # Bu kaldırılacak
         left_col1_vlayout.addWidget(control_label, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         calibration_label = QLabel("CALIBRATION")
         calibration_label.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
-        calibration_label.setStyleSheet(label_style)
+        calibration_label.setStyleSheet("font-size: 18px; font-weight: bold;")  # Bu kaldırılacak
         left_col2_vlayout.addWidget(calibration_label, alignment=Qt.AlignmentFlag.AlignHCenter)
 
-        # --- JOINT KONTROL SATIRLARI ---
+        # --- JOINT KONTROL SATIRLARI (GÜNCELLENECEK) ---
         def make_joint_row(name):
+            # Buton
             btn = QPushButton(name)
-            btn.setCheckable(True)
-            btn.setMinimumSize(120, 40)
-            btn.setMaximumWidth(120)
-            btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #cccccc;
-                    color: black;
-                    border: 1px solid #888888;
-                    border-radius: 5px;
-                    padding: 6px;
-                    font-weight: bold;
-                }
-                QPushButton:checked {
-                    background-color: #55bb55;
-                    color: white;
-                }
-            """)
+            btn.setMinimumSize(80, 40)
+            btn.setMaximumWidth(80)
+            # ESKİ STİL KALDIRILACAK:
+            # btn.setStyleSheet("""...""")
+            # YENİ STİL:
+            btn.setObjectName("joint-button")
+            btn.clicked.connect(lambda: self.control_handlers.joint_button_clicked(name))
 
-            # Position bar
+            # Position label
             position_label = QLabel("Position")
-            position_label.setFixedWidth(65)
+            position_label.setFixedWidth(60)
             position_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            position_label.setStyleSheet("font-weight: bold;")
+            position_label.setObjectName("joint-label")  # ESKİ: setStyleSheet("font-weight: bold;")
+            
+            # Power label
+            power_label = QLabel("Power")
+            power_label.setFixedWidth(50)
+            power_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            power_label.setObjectName("joint-label")  # ESKİ: setStyleSheet("font-weight: bold;")
+            
             position_slider = QSlider(Qt.Orientation.Horizontal)
             position_slider.setMinimum(-135)
             position_slider.setMaximum(135)
             position_slider.setValue(0)
-            position_slider.setFixedWidth(120)
+            position_slider.setFixedWidth(100)
             position_value = QLabel(str(position_slider.value()))
             position_value.setFixedWidth(40)
             position_value.setAlignment(Qt.AlignmentFlag.AlignCenter)
             position_slider.valueChanged.connect(lambda val: position_value.setText(str(val)))
+            # Position slider fonksiyonu ekle
+            position_slider.valueChanged.connect(lambda val: self.control_handlers.position_slider_changed(name, val))
 
             # Power bar
-            power_label = QLabel("Power")
-            power_label.setFixedWidth(50)
-            power_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            power_label.setStyleSheet("font-weight: bold;")
             power_slider = QSlider(Qt.Orientation.Horizontal)
             power_slider.setMinimum(0)
             power_slider.setMaximum(100)
@@ -139,6 +156,8 @@ class MainWindow(QMainWindow):
             power_value.setFixedWidth(40)
             power_value.setAlignment(Qt.AlignmentFlag.AlignCenter)
             power_slider.valueChanged.connect(lambda val: power_value.setText(str(val)))
+            # Power slider fonksiyonu ekle
+            power_slider.valueChanged.connect(lambda val: self.control_handlers.power_slider_changed(name, val))
 
             # Satırı oluştur
             row = QHBoxLayout()
@@ -152,283 +171,272 @@ class MainWindow(QMainWindow):
             row.addWidget(power_value)
             return row
 
-        # Joint1
+        # Joint kontrollerini ekle
         left_col1_vlayout.addLayout(make_joint_row("Joint1"))
-        # Joint2
         left_col1_vlayout.addLayout(make_joint_row("Joint2"))
-        # Effector
         left_col1_vlayout.addLayout(make_joint_row("Effector"))
 
-        # Calibration kısmı için butonlar (aynı genişlik ve margin)
+        # Calibration butonları (GÜNCELLENECEK)
         left_col2_layout = QVBoxLayout()
         calib_buttons = []
+        
         for name in ["Joint1", "Joint2", "Effector"]:
             btn = QPushButton(name)
             btn.setMinimumSize(120, 40)
             btn.setMaximumWidth(120)
-            btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #cccccc;
-                    color: black;
-                    border: 1px solid #888888;
-                    border-radius: 5px;
-                    padding: 6px;
-                    font-weight: bold;
-                }
-            """)
+            btn.setObjectName("calibration-default")  # ESKİ: setStyleSheet(col2_default_style)
             left_col2_layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignHCenter)
             calib_buttons.append(btn)
+
         left_col2_layout.setSpacing(20)
         left_col2_vlayout.addLayout(left_col2_layout)
 
-        # left_bottom_col2 butonları için stiller
-        col2_default_style = """
-            QPushButton {
-                background-color: #cccccc;
-                color: black;
-                border: 1px solid #888888;
-                border-radius: 5px;
-                padding: 6px;
-                font-weight: bold;
-            }
-        """
-        col2_yellow_style = """
-            QPushButton {
-                background-color: #ffe066;
-                color: black;
-                border: 1px solid #bba100;
-                border-radius: 5px;
-                padding: 6px;
-                font-weight: bold;
-            }
-        """
-        col2_active_style = """
-            QPushButton {
-                background-color: #55bb55;
-                color: white;
-                border: 1px solid #339933;
-                border-radius: 5px;
-                padding: 6px;
-                font-weight: bold;
-            }
-        """
-
-        from PyQt6.QtCore import QTimer
-
-        # Hepsi için ortak bir fonksiyon
+        # Calibration buton fonksiyonları (GÜNCELLENECEK)
         def activate_button_temporarily(btn):
+            self.control_handlers.calibration_button_clicked(btn.text())
             # Önce tüm butonları eski haline döndür
             for b in calib_buttons:
-                b.setStyleSheet(col2_default_style)
+                b.setObjectName("calibration-default")
+                self.apply_styles()  # Stilleri yeniden uygula
             # Tıklanan butonu sarı yap
-            btn.setStyleSheet(col2_yellow_style)
+            btn.setObjectName("calibration-processing")
+            self.apply_styles()
             # 5 saniye sonra yeşil yap
-            QTimer.singleShot(5000, lambda: btn.setStyleSheet(col2_active_style))
+            QTimer.singleShot(5000, lambda: [
+                btn.setObjectName("calibration-completed"),
+                self.apply_styles()
+            ])
 
-        # Butonlara tıklma bağlantısı
+        # Butonlara tıklama bağlantısı
         for btn in calib_buttons:
             btn.clicked.connect(lambda checked, b=btn: activate_button_temporarily(b))
 
+        # --- SAĞ SÜTUN ---
         # 2. sütun: Dikeyde 3'e böl
-        # 1. row: Switchler -> Butonlar olarak değiştirildi
+        # 1. Switchler (Toggle butonlar)
         switch_widget = QWidget()
         switch_widget.setStyleSheet("border: 2px solid red;")
         switch_layout = QVBoxLayout(switch_widget)
         
-        # Switch'leri butonlara dönüştürelim
+        # Toggle butonları (GÜNCELLENECEK)
         self.button1 = QPushButton("DEACTIVATED")
-        self.button2 = QPushButton("MANUAL")  # Değişti: DEACTIVATED -> MANUAL
-        
-        # Butonları toggle button haline getir
+        self.button2 = QPushButton("MANUAL")
         self.button1.setCheckable(True)
         self.button2.setCheckable(True)
         
-        # Butonların default stilini kırmızı yap
-        button_inactive_style = """
-            QPushButton {
-                background-color: #ff5555;
-                color: white;
-                border: 1px solid #c03030;
-                border-radius: 5px;
-                padding: 8px;
-                font-weight: bold;
-                min-height: 40px;
-            }
-            QPushButton:hover {
-                background-color: #ff7777;
-            }
-            QPushButton:pressed {
-                background-color: #cc3333;
-            }
-        """
-        
-        # Butonların aktif stilini yeşil yap
-        button_active_style = """
-            QPushButton {
-                background-color: #55bb55;
-                color: white;
-                border: 1px solid #30a030;
-                border-radius: 5px;
-                padding: 8px;
-                font-weight: bold;
-                min-height: 40px;
-            }
-            QPushButton:hover {
-                background-color: #77cc77;
-            }
-            QPushButton:pressed {
-                background-color: #339933;
-            }
-        """
-        
-        # Başlangıçta inaktif stil uygula
-        self.button1.setStyleSheet(button_inactive_style)
-        self.button2.setStyleSheet(button_inactive_style)
-        
-        # Toggle olduğunda stil ve metin değişikliği - button1
+        # ESKİ STİLLER KALDIRILACAK
+        self.button1.setObjectName("toggle-inactive")
+        self.button2.setObjectName("toggle-inactive")
+
+        # Toggle fonksiyonları (GÜNCELLENECEK)
         def toggle_button1_style(button):
             if button.isChecked():
                 button.setText("ACTIVATED")
-                button.setStyleSheet(button_active_style)
+                button.setObjectName("toggle-active")
+                self.control_handlers.activation_button_clicked("ACTIVATED")
             else:
                 button.setText("DEACTIVATED")
-                button.setStyleSheet(button_inactive_style)
-        
-        # Toggle olduğunda stil ve metin değişikliği - button2
+                button.setObjectName("toggle-inactive")
+                self.control_handlers.activation_button_clicked("DEACTIVATED")
+            self.apply_styles()
+
         def toggle_button2_style(button):
             if button.isChecked():
-                button.setText("AUTONOMOUS")  # Değişti: ACTIVATED -> AUTONOMOUS
-                button.setStyleSheet(button_active_style)
+                button.setText("AUTOMATIC")
+                button.setObjectName("toggle-active")
+                self.control_handlers.mode_button_clicked("AUTOMATIC")
             else:
-                button.setText("MANUAL")  # Değişti: DEACTIVATED -> MANUAL
-                button.setStyleSheet(button_inactive_style)
-        
-        # Toggle sinyallerine bağla - her buton için ayrı fonksiyon
+                button.setText("MANUAL")
+                button.setObjectName("toggle-inactive")
+                self.control_handlers.mode_button_clicked("MANUAL")
+            self.apply_styles()
+
+        # Toggle sinyallerine bağla
         self.button1.toggled.connect(lambda checked: toggle_button1_style(self.button1))
         self.button2.toggled.connect(lambda checked: toggle_button2_style(self.button2))
         
-        # Butonları kutu içinde sığdır ve dikey olarak büyüt
-        switch_layout.addWidget(self.button1, 1)  # 1 birim stretch
-        switch_layout.addWidget(self.button2, 1)  # 1 birim stretch
-        
-        # Butonların minimum yüksekliklerini ayarla
-        self.button1.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.button2.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        
-        # Butonlar arasına boşluk ekle
-        switch_layout.setSpacing(10)
-        
-        # Butonların etrafında biraz boşluk bırak
-        switch_layout.setContentsMargins(10, 10, 10, 10)
+        switch_layout.addWidget(self.button1)
+        switch_layout.addWidget(self.button2)
 
-        # 2. row: Boş kutu
+        # 2. Boş kutu
         empty_box = QFrame()
         empty_box.setFrameShape(QFrame.Shape.StyledPanel)
         empty_box.setStyleSheet("border: 2px solid red;")
 
-        # 3. row: Kapatma butonu kutusu (1. sütun 2. row ile hizalı)
-        # Yeni HeightSyncWidget sınıfını kullanıyoruz
+        # 3. Kapatma butonu kutusu (GÜNCELLENECEK)
         button_row_widget = HeightSyncWidget(bottom_row_widget)
         button_row_widget.setStyleSheet("border: 2px solid red;")
-        button_row_layout = QHBoxLayout(button_row_widget)
+        button_row_layout = QVBoxLayout(button_row_widget)  # HBoxLayout'tan VBoxLayout'a değiştir
+    
+        # Kapatma butonu (GÜNCELLENECEK)
         self.action_button = QPushButton()
+        self.action_button.setIcon(resource_manager.get_icon("closeApp.png"))
+        self.action_button.setIconSize(QSize(120, 120))
         self.action_button.setText("")
-        assets_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
-        icon_path = os.path.join(assets_dir, "closeApp.png")
-        if os.path.exists(icon_path):
-            self.action_button.setIcon(QIcon(icon_path))
-            self.action_button.setIconSize(QSize(150, 150))
-        else:
-            print(f"İkon bulunamadı: {icon_path}")
-        self.action_button.setFixedSize(75, 75)
-        self.action_button.setStyleSheet("""
-            QPushButton {
-                border: none;
-                background: transparent;
-                padding: 0px;
-            }
-            QPushButton:pressed {
-                background: #dddddd;
-            }
-        """)
-        self.action_button.setToolTip("Kapat")
-        self.action_button.clicked.connect(self.close_app)
+        self.action_button.setFixedSize(150, 150)
+        self.action_button.setObjectName("close-button")  # ESKİ: setStyleSheet("""...""")
+        self.action_button.setToolTip("Uygulamayı Kapat")
+        self.action_button.clicked.connect(self.control_handlers.close_app)
         button_row_layout.addWidget(self.action_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        # 2. sütunu QVBoxLayout ile oluşturup grid'e ekle
+        # === TEMA SEÇİCİSİ KAPATMA BUTONU ALTINA ===
+        # Tema label (GÜNCELLENECEK)
+        theme_label = QLabel("Theme")
+        theme_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        theme_label.setObjectName("theme-label")  # ESKİ: setStyleSheet("font-weight: bold; font-size: 12px; margin: 5px 0;")
+        button_row_layout.addWidget(theme_label)
+        
+        # Tema butonları (GÜNCELLENECEK)
+        theme_buttons_layout = QHBoxLayout()
+        theme_buttons_layout.setSpacing(5)
+        
+        # Açık tema butonu
+        self.light_theme_btn = QPushButton("☀️")
+        self.light_theme_btn.setFixedSize(35, 35)
+        self.light_theme_btn.setToolTip("Açık Tema")
+        self.light_theme_btn.setObjectName("theme-button-normal")
+        self.light_theme_btn.clicked.connect(lambda: self.control_handlers.change_theme("light_theme"))
+        
+        # Koyu tema butonu  
+        self.dark_theme_btn = QPushButton("🌙")
+        self.dark_theme_btn.setFixedSize(35, 35)
+        self.dark_theme_btn.setToolTip("Koyu Tema")
+        self.dark_theme_btn.setObjectName("theme-button-normal")
+        self.dark_theme_btn.clicked.connect(lambda: self.control_handlers.change_theme("dark_theme"))
+
+        theme_buttons_layout.addWidget(self.light_theme_btn)
+        theme_buttons_layout.addWidget(self.dark_theme_btn)
+        button_row_layout.addLayout(theme_buttons_layout)
+
+        # SAĞ SÜTUNU GRİD'E EKLE (BU KISIM EKSİKTİ!)
         right_col_widget = QWidget()
         right_col_layout = QVBoxLayout(right_col_widget)
         right_col_layout.setContentsMargins(0, 0, 0, 0)
         right_col_layout.setSpacing(0)
-        right_col_layout.addWidget(switch_widget, 2)   # 1. row (küçüldü)
-        right_col_layout.addWidget(empty_box, 5)       # 2. row (büyütüldü)
-        right_col_layout.addWidget(button_row_widget, 2) # 3. row (buton kutusu)
+        right_col_layout.addWidget(switch_widget, 2)
+        right_col_layout.addWidget(empty_box, 5)
+        right_col_layout.addWidget(button_row_widget, 2)
 
-        # Sorunlu lambda-tabanlı resizeEvent özelleştirmesini kaldırdık
-        # ve yerine özel HeightSyncWidget sınıfımızı kullandık
+        # Sağ sütunu grid'e ekle (BU SATIRLAR EKSİKTİ!)
+        grid.addWidget(right_col_widget, 0, 1, 2, 1)
 
-        grid.addWidget(right_col_widget, 0, 1, 2, 1)  # 2 satırı kapsayacak şekilde ekle
-
-        # ROS bağlantısı
-        try:
-            self.ros_bridge = ROSBridge(self)
-        except Exception as e:
-            rospy.logerr(f"ROS Bridge başlatılamadı: {e}")
-
-        # (1) right_col_layout zaten tanımlı: image_label oraya eklenmiş
-        # -> şimdi soru ikonu ekleniyor
-        self.help_btn = QToolButton()
-        self.help_btn.setIcon(self.style()
-            .standardIcon(QStyle.StandardPixmap.SP_MessageBoxQuestion))
-        self.help_btn.setAutoRaise(True)
-        self.help_btn.clicked.connect(self.show_manual_help)
-        self.help_btn.hide()  # başta gizli
-        
-        # Sağ üst köşeye yerleştir
-        # help_btn'i image_label'in çocuğu yap ve hemen listen
+        # Help butonu ekle (image_label'in üzerine)
+        self.help_btn = QPushButton("?")
         self.help_btn.setParent(self.image_label)
-        self.help_btn.move(
-            self.image_label.width() - self.help_btn.width() - 10,
-            10
-        )
-
-         # (2) Manuel moda geçişte göster/gizle
-        # isChecked==False iken (MANUAL moddayken) göster
-        self.button2.toggled.connect(lambda on: self.help_btn.setVisible(not on))
-        self.help_btn.setVisible(not self.button2.isChecked())
-
-        # pencere tamamen oluştuktan sonra 0ms gecikmeyle doğru konuma taşı
-        from PyQt6.QtCore import QTimer
+        self.help_btn.setFixedSize(40, 40)
+        self.help_btn.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(0, 120, 212, 0.8);
+                color: white;
+                border: none;
+                border-radius: 20px;
+                font-size: 18px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: rgba(0, 120, 212, 1.0);
+            }
+        """)
+        self.help_btn.clicked.connect(self.control_handlers.show_manual_help)
+        
+        # Help butonunu konumlandır
         QTimer.singleShot(0, self._reposition_help_btn)
 
-    def update_image(self, pixmap):
-        self.image_label.setPixmap(pixmap)
+        # Panel kenarlıkları ObjectName ile ayarla
+        self.image_label.setObjectName("panel-border")
+        bottom_row_widget.setObjectName("panel-border")
+        switch_widget.setObjectName("panel-border")
+        empty_box.setObjectName("panel-border")
+        button_row_widget.setObjectName("panel-border")
+        left_bottom_col1.setObjectName("panel-border")
+        left_bottom_col2.setObjectName("panel-border")
 
-    def close_app(self):
-        print("Kullanıcı arayüzden çıkış yaptı.")
+        # Varsayılan tema ve stilleri uygula
+        self.control_handlers.change_theme("light_theme")
+        self.apply_styles()
+
+    def apply_styles(self):
+        """Tüm component stillerini uygula"""
         try:
-            rospy.signal_shutdown("Kullanıcı arayüzden çıkış yaptı.")
-        except Exception:
-            pass
-        QApplication.instance().quit()
-
-    def show_manual_help(self):
-        QMessageBox.information(
-            self,
-            "Manual Mode Help",
-            "Bu modda joint ve effector kontrollerini elle ayarlayabilirsiniz.\n"
-            "• Butonları tıklayın.\n"
-            "• Slider’ları sürükleyin.\n"
-            "• Değerler anında güncellenir."
-        )
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        # image_label her yeniden boyutlanınca help_btn'i yeniden konumlandır
-        self._reposition_help_btn()
+            # Genel temayı uygula
+            theme_style = resource_manager.get_current_theme()
+            
+            # Özel component stillerini ekle
+            joint_style = resource_manager.get_joint_button_style()
+            calibration_style = resource_manager.get_style("calibration_buttons")
+            toggle_style = resource_manager.get_style("toggle_buttons")
+            close_style = resource_manager.get_close_button_style()
+            theme_button_style = resource_manager.get_style("theme_buttons")
+            label_style = resource_manager.get_style("labels")
+            
+            # Tüm stilleri birleştir
+            combined_style = f"""
+            {theme_style}
+            {joint_style}
+            {calibration_style}
+            {toggle_style}
+            {close_style}
+            {theme_button_style}
+            {label_style}
+            """
+            
+            # Ana pencereye uygula
+            self.setStyleSheet(combined_style)
+            
+        except Exception as e:
+            print(f"Stil uygulama hatası: {e}")
 
     def _reposition_help_btn(self):
-        if hasattr(self, 'help_btn') and hasattr(self, 'image_label'):
-            x = self.image_label.width() - self.help_btn.width() - 10
-            y = 10
-            self.help_btn.move(x, y)
+        """Help butonunu doğru konuma taşı"""
+        try:
+            if hasattr(self, 'help_btn') and hasattr(self, 'image_label'):
+                # image_label'in boyutlarını al
+                image_rect = self.image_label.geometry()
+                
+                # Help butonunu sağ üst köşeye yerleştir
+                btn_size = 40
+                margin = 10
+                x = image_rect.width() - btn_size - margin
+                y = margin
+                
+                self.help_btn.setGeometry(x, y, btn_size, btn_size)
+        except Exception as e:
+            print(f"Help butonu konumlama hatası: {e}")
+
+    def resizeEvent(self, event):
+        """Pencere boyutu değiştiğinde help butonunu yeniden konumlandır"""
+        super().resizeEvent(event)
+        self._reposition_help_btn()
+            
+    def closeEvent(self, event):
+        """Pencere kapatılırken temizlik işlemleri"""
+        if self.shutdown_initiated:
+            event.accept()
+            return
+        self.shutdown_initiated = True
+        
+        print("Pencere kapatılıyor...")
+        
+        # ROS bridge'i kapat
+        if hasattr(self, 'ros_bridge'):
+            try:
+                self.ros_bridge.shutdown()
+            except Exception as e:
+                print(f"ROS bridge kapatma hatası: {e}")
+        
+        # ROS'u kapat (eğer hala aktifse)
+        try:
+            if not rospy.is_shutdown():
+                rospy.signal_shutdown("Pencere kapatıldı")
+        except Exception as e:
+            print(f"ROS shutdown hatası: {e}")
+        
+        # Olayı kabul et
+        event.accept()
+
+    def update_image(self, pixmap):
+        """Görüntü güncelleme proxy metodu - control_handlers'a yönlendir"""
+        if hasattr(self, 'control_handlers'):
+            self.control_handlers.update_image(pixmap)
+        else:
+            rospy.logwarn("Control handlers bulunamadı!")

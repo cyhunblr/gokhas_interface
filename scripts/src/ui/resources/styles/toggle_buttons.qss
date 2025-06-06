@@ -1,0 +1,37 @@
+/* İnaktif Toggle Buton */
+.toggle-inactive {
+    background-color: #ff5555;
+    color: white;
+    border: 1px solid #c03030;
+    border-radius: 5px;
+    padding: 8px;
+    font-weight: bold;
+    min-height: 40px;
+}
+
+.toggle-inactive:hover {
+    background-color: #ff7777;
+}
+
+.toggle-inactive:pressed {
+    background-color: #cc3333;
+}
+
+/* Aktif Toggle Buton */
+.toggle-active {
+    background-color: #55bb55;
+    color: white;
+    border: 1px solid #30a030;
+    border-radius: 5px;
+    padding: 8px;
+    font-weight: bold;
+    min-height: 40px;
+}
+
+.toggle-active:hover {
+    background-color: #77cc77;
+}
+
+.toggle-active:pressed {
+    background-color: #339933;
+}

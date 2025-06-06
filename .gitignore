@@ -1,0 +1,4 @@
+# ignore all .pyc files in all directories
+*.pyc
+# ignore all .vscode directories in all directories
+.vscode/

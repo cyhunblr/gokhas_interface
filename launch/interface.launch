@@ -1,7 +1,13 @@
 <launch>
-    <!-- Test için kamera simülasyon nodunu başlat -->
-    <node pkg="gokhas_interface" type="camera_publisher.py" name="camera_publisher_node" output="screen" />
-    
-    <!-- Ana arayüz uygulamasını başlat -->
-    <node pkg="gokhas_interface" type="launch_interface.py" name="qt_interface_node" output="screen" />
+
+    <!-- GokHAS Interface Launch -->
+    <node pkg="gokhas_interface" type="launch_interface.py" name="qt_interface_node" output="screen" required="true"/>
+
+    <!-- ZED M Camera Launch -->
+    <!-- <include file="$(find zed_wrapper)/launch/zedm.launch"/> -->
+
+    <!-- Ultralyics YOLOv8 Launch -->
+    <!-- <include file="$(find ultralytics_ros)/launch/tracker.launch"/> -->
+    <!-- Test Camera Publisher -->
+    <!-- <node pkg="gokhas_interface" type="camera_publisher.py" name="camera_publisher_node" output="screen" /> -->
 </launch>

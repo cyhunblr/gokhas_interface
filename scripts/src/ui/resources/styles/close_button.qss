@@ -1,0 +1,17 @@
+/* Kapatma Butonu */
+.close-button {
+    border: none;
+    background: transparent;
+    padding: 0px;
+    border-radius: 10px;
+}
+
+.close-button:hover {
+    background: rgba(255, 68, 68, 0.2);
+    border: 2px solid #ff4444;
+}
+
+.close-button:pressed {
+    background: rgba(255, 68, 68, 0.4);
+    border: 2px solid #cc0000;
+}

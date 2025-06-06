@@ -1,0 +1,24 @@
+/* Joint Buton Stili */
+.joint-button {
+    background-color: #cccccc;
+    color: black;
+    border: 1px solid #888888;
+    border-radius: 5px;
+    padding: 6px;
+    font-weight: bold;
+}
+
+.joint-button:hover {
+    background-color: #e0e0e0;
+}
+
+.joint-button:pressed {
+    background-color: #b0b0b0;
+}
+
+/* Label Stili */
+.joint-label {
+    font-weight: bold;
+}
+
+/* Slider Stilleri zaten genel temalarda var */

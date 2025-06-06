@@ -1,0 +1,121 @@
+QMainWindow {
+    background-color: #ffffff;
+    color: #333333;
+}
+
+QPushButton {
+    background-color: #f0f0f0;
+    border: 1px solid #cccccc;
+    border-radius: 5px;
+    padding: 8px;
+    color: #333333;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #e0e0e0;
+    border: 1px solid #aaaaaa;
+}
+
+QPushButton:pressed {
+    background-color: #d0d0d0;
+    border: 1px solid #999999;
+}
+
+QLabel {
+    color: #333333;
+    background-color: transparent;
+}
+
+QCheckBox {
+    color: #333333;
+    spacing: 5px;
+}
+
+QCheckBox::indicator {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #cccccc;
+    border-radius: 3px;
+    background-color: #ffffff;
+}
+
+QCheckBox::indicator:checked {
+    background-color: #0078d4;
+    border: 2px solid #005a9e;
+}
+
+QSlider::groove:horizontal {
+    border: 1px solid #cccccc;
+    background: #f0f0f0;
+    height: 8px;
+    border-radius: 4px;
+}
+
+QSlider::handle:horizontal {
+    background: #0078d4;
+    border: 1px solid #005a9e;
+    width: 18px;
+    margin: -5px 0;
+    border-radius: 9px;
+}
+
+QFrame {
+    border: 1px solid #cccccc;
+    background-color: #fafafa;
+}
+
+/* Özel QWidget stilleri */
+QWidget {
+    background-color: #ffffff;
+    color: #333333;
+}
+
+/* Ek UI bileşenleri için açık tema stilleri */
+QSlider::groove:vertical {
+    border: 1px solid #cccccc;
+    background: #f0f0f0;
+    width: 8px;
+    border-radius: 4px;
+}
+
+QSlider::handle:vertical {
+    background: #0078d4;
+    border: 1px solid #005a9e;
+    height: 18px;
+    margin: 0 -5px;
+    border-radius: 9px;
+}
+
+QToolButton {
+    background-color: #f0f0f0;
+    border: 1px solid #cccccc;
+    border-radius: 5px;
+    padding: 6px;
+    color: #333333;
+}
+
+QToolButton:hover {
+    background-color: #e0e0e0;
+}
+
+QToolButton:pressed {
+    background-color: #d0d0d0;
+}
+
+/* Scroll bar stilleri */
+QScrollBar:vertical {
+    background: #f0f0f0;
+    width: 12px;
+    border-radius: 6px;
+}
+
+QScrollBar::handle:vertical {
+    background: #cccccc;
+    border-radius: 6px;
+    min-height: 20px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #aaaaaa;
+}
