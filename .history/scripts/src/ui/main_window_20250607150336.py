@@ -63,22 +63,17 @@ class MainWindow(QMainWindow):
         super().__init__()
         # Kapama işlemi birden fazla tetiklenmesin
         self.shutdown_initiated = False
-        self.show_borders = True
 
         # Pencere başlığı, boyutlandırma
         self.setWindowTitle("GokHAS Central Control Interface")
         self.setGeometry(100, 100, 1200, 800)
 
-        # Kontroller için handler
+        # Kontroller için handler ve ROS köprüsü
         self.control_handlers = ControlHandlers(self)
-
-        # UI oluşturma
-        self._create_ui()
-
-        #ROS köprüsü
         self.ros_bridge = ROSBridge(self)
 
-        #stil uygulama
+        # UI oluşturma ve stil uygulama
+        self._create_ui()
         self.control_handlers.change_theme("light_theme")
         self.apply_styles()
 
@@ -86,7 +81,7 @@ class MainWindow(QMainWindow):
         """
         Ana UI düzenini hazırlar:
         Sol: Kamera + kontrol panelleri
-        Sağ: Toggle, log paneli, kapatma/tema/border bölümü
+        Sağ: Toggle, boş panel, kapatma/tema bölümü
         """
         # Pencere ikonunu ayarla
         self._set_window_icon()
@@ -100,66 +95,45 @@ class MainWindow(QMainWindow):
         grid.setRowStretch(0, 5)
         grid.setRowStretch(1, 2)
 
-        border = "2px solid red" if self.show_borders else "none"
-
         # ----- Sol Üst: Kamera Görüntüsü -----
         self.image_label = QLabel("Kamera görüntüsü bekleniyor...")
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.image_label.setMinimumSize(320, 240)
-        self.image_label.setScaledContents(True)
-        self.image_label.setStyleSheet(f"background-color: black; border: {border};")
-        self.image_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.image_label.setMinimumHeight(350)
+        self.image_label.setStyleSheet("background-color: black; border: 2px solid red;")
         grid.addWidget(self.image_label, 0, 0)
 
         # ----- Sol Alt: Joint Kontrol ve Kalibrasyon -----
-        self.bottom_widget = QWidget()
-        self.bottom_widget.setStyleSheet(f"border: {border};")
-        self.bottom_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        bottom_layout = QHBoxLayout(self.bottom_widget)
+        bottom_widget = QWidget()
+        bottom_widget.setStyleSheet("border: 2px solid red;")
+        bottom_layout = QHBoxLayout(bottom_widget)
+        # Kontrol ve kalibrasyon panelleri
+        left_panel = QFrame()
+        left_panel.setFrameShape(QFrame.Shape.StyledPanel)
+        left_panel.setStyleSheet("border: 2px solid red;")
+        right_panel = QFrame()
+        right_panel.setFrameShape(QFrame.Shape.StyledPanel)
+        right_panel.setStyleSheet("border: 2px solid red;")
+        bottom_layout.addWidget(left_panel)
+        bottom_layout.addWidget(right_panel)
+        grid.addWidget(bottom_widget, 1, 0)
 
-        self.left_panel = QFrame()
-        self.left_panel.setFrameShape(QFrame.Shape.StyledPanel)
-        self.left_panel.setStyleSheet(f"border: {border};")
-        self.left_panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-
-        self.right_panel = QFrame()
-        self.right_panel.setFrameShape(QFrame.Shape.StyledPanel)
-        self.right_panel.setStyleSheet(f"border: {border};")
-        self.right_panel.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
-        self.right_panel.setFixedWidth(120)
-
-        bottom_layout.addWidget(self.left_panel, stretch=3)
-        bottom_layout.addWidget(self.right_panel, stretch=0)
-
-        grid.addWidget(self.bottom_widget, 1, 0)
-
-        # Panel içerikleri
-        self._create_control_panel(self.left_panel, ["Joint1", "Joint2", "Effector"])
-        self._create_calibration_panel(self.right_panel, ["Joint1", "Joint2", "Effector"])
+        # Joint kontrol panelini inşa et
+        self._create_control_panel(left_panel, ["Joint1", "Joint2", "Effector"])
+        # Kalibrasyon panelini inşa et
+        self._create_calibration_panel(right_panel, ["Joint1", "Joint2", "Effector"])
 
         # ----- Sağ Yan Menü -----
         sidebar = QWidget()
         sidebar_layout = QVBoxLayout(sidebar)
         sidebar_layout.setContentsMargins(2, 2, 2, 2)
         sidebar_layout.setSpacing(0)
-
-        self.sidebar_toggle = self._create_toggle_section()
-        self.sidebar_log = self._create_empty_section()
-        self.sidebar_action = self._create_action_section(self.bottom_widget)
-
-        self.sidebar_toggle.setStyleSheet(f"border: {border};")
-        self.sidebar_log.setStyleSheet(f"border: {border};")
-        self.sidebar_action.setStyleSheet(f"border: {border};")
-
-        sidebar_layout.addWidget(self.sidebar_toggle, stretch=2)
-        sidebar_layout.addWidget(self.sidebar_log, stretch=5)
-        sidebar_layout.addWidget(self.sidebar_action, stretch=2)
-
+        sidebar_layout.addWidget(self._create_toggle_section(), stretch=2)
+        sidebar_layout.addWidget(self._create_empty_section(), stretch=5)
+        sidebar_layout.addWidget(self._create_action_section(bottom_widget), stretch=2)
         grid.addWidget(sidebar, 0, 1, 2, 1)
 
         # Yardım butonu
         self._add_help_button()
-
 
     def _set_window_icon(self):
         """
@@ -181,12 +155,11 @@ class MainWindow(QMainWindow):
         Her satırda buton, position slider, power slider bulunur.
         """
         layout = QVBoxLayout(parent)
-        layout.setSpacing(25)
-        layout.setContentsMargins(5, 5, 5, 5)        
+        layout.setSpacing(15)
         # Panel başlığı
         title = QLabel("MANUEL JOINT and EFFECTOR CONTROL")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setFixedHeight(30)
+        title.setFixedHeight(20)
         title.setObjectName("panel-title")
         title.setStyleSheet("font-size: 16px; margin: 0; padding: 0;")
         layout.addWidget(title)
@@ -260,22 +233,21 @@ class MainWindow(QMainWindow):
         Butona tıklandığında control_handlers'taki handle_calibration_click metodunu çağırır.
         """
         layout = QVBoxLayout(parent)
-        layout.setSpacing(10)
-        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(15)
         title = QLabel("CALIBRATION")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setFixedHeight(30)
+        title.setFixedHeight(20)
         title.setObjectName("panel-title")
         title.setStyleSheet("font-size: 16px; margin: 0; padding: 0;")
         layout.addWidget(title)
 
         btns = []
         calib_layout = QVBoxLayout()
-        calib_layout.setSpacing(10)
+        calib_layout.setSpacing(20)
         for name in names:
             btn = QPushButton(name)
             btn.setObjectName("calibration-default")
-            btn.setFixedSize(100, 35)
+            btn.setFixedSize(120, 40)
             # control_handlers'taki handle_calibration_click metodunu çağır
             btn.clicked.connect(lambda _, b=btn, btns=btns: self.control_handlers.handle_calibration_click(b, btns))
             calib_layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -380,38 +352,25 @@ class MainWindow(QMainWindow):
         theme_lbl = QLabel("Theme")
         theme_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         theme_lbl.setObjectName("theme-label")
-        theme_lbl.setStyleSheet("font-size: 12px; margin: 0; padding: 0;")  # 🔹 Daha küçük yazı
         layout.addWidget(theme_lbl)
 
         theme_layout = QHBoxLayout()
-
-        # Tema butonları
         for sym, theme in [("☀️", "light_theme"), ("🌙", "dark_theme")]:
             tbtn = QPushButton(sym)
             tbtn.setFixedSize(35, 35)
             tbtn.setToolTip("Açık Tema" if theme == "light_theme" else "Koyu Tema")
-            tbtn.setObjectName("theme-button-active" if theme == "light_theme" else "theme-button-normal")
+            
+            # Initial tema light_theme olduğu için light butonunu aktif yap
+            if theme == "light_theme":
+                tbtn.setObjectName("theme-button-active")  # Light butonu başlangıçta mavi
+            else:
+                tbtn.setObjectName("theme-button-normal")   # Dark butonu başlangıçta normal
+                
             tbtn.clicked.connect(lambda _, th=theme: self.control_handlers.handle_theme_change(th))
             theme_layout.addWidget(tbtn)
-
-        # 🔴 Border Toggle butonu 
-        border_btn = QPushButton("🟥")  # veya "B"
-        border_btn.setFixedSize(35, 35)
-        border_btn.setToolTip("Borderları Aç/Kapat")
-        border_btn.setObjectName("theme-button-normal")  # Aynı stil
-        border_btn.clicked.connect(self._toggle_borders)
-        theme_layout.addWidget(border_btn)
-
         layout.addLayout(theme_layout)
 
-
         return widget
-
-    def _toggle_borders(self):
-        """Border gösterimini aç/kapat."""
-        self.show_borders = not self.show_borders
-        self.update_borders()
-
 
     def _add_help_button(self):
         """Kamera görüntüsünün üzerine '?' butonu ekler."""
@@ -423,11 +382,9 @@ class MainWindow(QMainWindow):
 
     def _reposition_help_btn(self):
         """Help butonunu image_label içinde sağ üst köşeye taşır."""
-        if self.image_label and self.help_btn:
-            size = self.help_btn.size()
-            margin = 10
-            label_width = self.image_label.width()
-            self.help_btn.move(label_width - size.width() - margin, margin)
+        rect = self.image_label.geometry()
+        margin, size = 10, 40
+        self.help_btn.setGeometry(rect.width() - size - margin, margin, size, size)
 
     def resizeEvent(self, event):
         """Pencere her yeniden boyutlandığında help butonunu güncelle."""
@@ -481,29 +438,6 @@ class MainWindow(QMainWindow):
         """Kamera görüntüsünü günceller."""
         if hasattr(self, 'image_label'):
             self.image_label.setPixmap(pixmap)
-    
-    def update_borders(self):
-        """Tüm bileşenlerin kenarlık stilini günceller, diğer stilleri bozmadan."""
-        border = "2px solid red" if self.show_borders else "none"
-
-        # Kamera etiketi: Arka planı korunmalı
-        self.image_label.setStyleSheet(
-            f"background-color: black; border: {border};"
-        )
-
-        # Diğer widget'lar: sadece border içeriyor
-        other_widgets = [
-            self.left_panel,
-            self.right_panel,
-            self.bottom_widget,
-            self.sidebar_toggle,
-            self.sidebar_log,
-            self.sidebar_action,
-        ]
-        for widget in other_widgets:
-            widget.setStyleSheet(f"border: {border};")
-
-
 
 def main():
     """
