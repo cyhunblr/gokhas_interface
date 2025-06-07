@@ -166,7 +166,7 @@ class ROSBridge(QObject):
         Args:
             msg: ROS Image message containing the detection result image
         """
-        # Don't process images if system is shutting down
+        # Don't process images if system is shutting_down
         if self.is_shutting_down:
             return
             
@@ -186,21 +186,10 @@ class ROSBridge(QObject):
             # Step 3: Create QPixmap from QImage for display
             pix = QPixmap.fromImage(qt_img)
             
-            # Step 4: Scale image to fit GUI label if necessary
-            if self.main_window and hasattr(self.main_window, 'image_label'):
-                label = self.main_window.image_label
-                # Only scale if image size doesn't match label size
-                if label and (pix.width() != label.width() or pix.height() != label.height()):
-                    pix = pix.scaled(
-                        label.size(),                                    # Target size
-                        Qt.AspectRatioMode.KeepAspectRatio,             # Maintain aspect ratio
-                        Qt.TransformationMode.SmoothTransformation      # High quality scaling
-                    )
-            
-            # Step 5: Emit signal to update GUI (thread-safe)
+            # Step 4: Emit signal to update GUI (thread-safe) - görüntü olduğu gibi
             self.new_frame.emit(pix)
             
-            # Step 6: Update detection status messages
+            # Step 5: Update detection status messages
             self._update_detection_status()
             
         except CvBridgeError as e:
