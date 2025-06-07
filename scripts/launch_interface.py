@@ -47,11 +47,6 @@ def main():
     window = MainWindow()
     window.show()
     
-    # Qt Timer for ROS integration
-    timer = QTimer()
-    timer.timeout.connect(lambda: None) 
-    timer.start(10)
-    
     # Safe shutdown handler - prevent infinite loop
     def safe_shutdown_handler():
         global shutdown_initiated

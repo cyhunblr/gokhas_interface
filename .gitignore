@@ -2,3 +2,5 @@
 *.pyc
 # ignore all .vscode directories in all directories
 .vscode/
+# ignore all .history files in all directories
+.history/
