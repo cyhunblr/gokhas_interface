@@ -1,0 +1,66 @@
+/* Border Toggle Butonu - Normal (Border Kapalı) */
+QPushButton#border-button-normal {
+    background-color: transparent !important;
+    border: 1px solid #cccccc;
+    border-radius: 17px;
+    font-size: 16px;
+    color: white !important;  /* B harfi her zaman beyaz */
+}
+
+QPushButton#border-button-normal:hover {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    border: 1px solid #999999;
+    color: white !important;
+}
+
+QPushButton#border-button-normal:pressed {
+    background-color: rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid #666666;
+    color: white !important;
+}
+
+/* Border Toggle Butonu - Aktif (Border Açık) */
+QPushButton#border-button-active {
+    background-color: #dc3545 !important;  /* Kırmızı arka plan */
+    color: white !important;               /* Beyaz B harfi */
+    border: 2px solid #c82333 !important;
+    border-radius: 17px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+QPushButton#border-button-active:hover {
+    background-color: #c82333 !important;  /* Daha koyu kırmızı hover */
+    border: 2px solid #bd2130 !important;
+    color: white !important;
+}
+
+QPushButton#border-button-active:pressed {
+    background-color: #bd2130 !important;  /* En koyu kırmızı pressed */
+    border: 2px solid #a71e2a !important;
+    color: white !important;
+}
+
+/* Border butonlarına focus olduğunda outline kaldır */
+QPushButton#border-button-normal:focus,
+QPushButton#border-button-active:focus {
+    outline: none;
+}
+
+/* Genel QPushButton stili - diğer butonlar için */
+QPushButton {
+    background-color: #ff0000 !important;
+    color: white;
+    border: 1px solid #888888;
+    border-radius: 5px;
+    padding: 6px;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #ff3333 !important;
+}
+
+QPushButton:pressed {
+    background-color: #990000 !important;
+}

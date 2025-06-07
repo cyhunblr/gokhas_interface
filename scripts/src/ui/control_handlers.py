@@ -289,3 +289,25 @@ class ControlHandlers:
             # Close Qt application directly
             if self.parent:
                 self.parent.close()
+
+    def handle_border_toggle(self, btn):
+        """Handle border toggle button click"""
+        # Parent'tan border durumunu değiştir
+        if self.parent:
+            self.parent.show_borders = not self.parent.show_borders
+            self.parent.update_borders()
+            
+            # Buton stilini güncelle
+            if self.parent.show_borders:
+                btn.setObjectName("border-button-active")  # Kırmızı (açık)
+                rospy.loginfo("Debug borders enabled")
+                print("Debug borders açık")
+            else:
+                btn.setObjectName("border-button-normal")   # Transparan (kapalı)
+                rospy.loginfo("Debug borders disabled")
+                print("Debug borders kapalı")
+        
+            # Stili tekrar uygula
+            self.parent.apply_styles()
+        else:
+            rospy.logwarn("Parent window not found for border toggle")

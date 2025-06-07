@@ -7,7 +7,7 @@
     <include file="$(find zed_wrapper)/launch/zedm.launch"/>
 
     <!-- Ultralyics YOLOv8 Launch -->
-    <!-- <include file="$(find ultralytics_ros)/launch/tracker.launch"/> -->
+    <include file="$(find ultralytics_ros)/launch/tracker.launch"/>
     <!-- Test Camera Publisher -->
     <!-- <node pkg="gokhas_interface" type="camera_publisher.py" name="camera_publisher_node" output="screen" /> -->
 </launch>

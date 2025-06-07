@@ -63,7 +63,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         # Kapama işlemi birden fazla tetiklenmesin
         self.shutdown_initiated = False
-        self.show_borders = True
+        self.show_borders = False
 
         # Pencere başlığı, boyutlandırma
         self.setWindowTitle("GokHAS Central Control Interface")
@@ -363,7 +363,6 @@ class MainWindow(QMainWindow):
         Sağ alt: Kapatma butonu ve tema seçim butonları.
         """
         widget = HeightSyncWidget(reference)
-        widget.setStyleSheet("border: 2px solid red;")
         layout = QVBoxLayout(widget)
 
         # Kapatma butonu
@@ -380,7 +379,7 @@ class MainWindow(QMainWindow):
         theme_lbl = QLabel("Theme")
         theme_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         theme_lbl.setObjectName("theme-label")
-        theme_lbl.setStyleSheet("font-size: 12px; margin: 0; padding: 0;")  # 🔹 Daha küçük yazı
+        theme_lbl.setStyleSheet("font-size: 12px; margin: 0; padding: 0;")
         layout.addWidget(theme_lbl)
 
         theme_layout = QHBoxLayout()
@@ -394,24 +393,16 @@ class MainWindow(QMainWindow):
             tbtn.clicked.connect(lambda _, th=theme: self.control_handlers.handle_theme_change(th))
             theme_layout.addWidget(tbtn)
 
-        # 🔴 Border Toggle butonu 
-        border_btn = QPushButton("🟥")  # veya "B"
+        # Border Toggle butonu
+        border_btn = QPushButton("B")
         border_btn.setFixedSize(35, 35)
-        border_btn.setToolTip("Borderları Aç/Kapat")
-        border_btn.setObjectName("theme-button-normal")  # Aynı stil
-        border_btn.clicked.connect(self._toggle_borders)
+        border_btn.setToolTip("Debug Borderlarını Aç/Kapat")
+        border_btn.setObjectName("border-button-normal")  # Başlangıçta kapalı
+        border_btn.clicked.connect(lambda: self.control_handlers.handle_border_toggle(border_btn))
         theme_layout.addWidget(border_btn)
 
         layout.addLayout(theme_layout)
-
-
         return widget
-
-    def _toggle_borders(self):
-        """Border gösterimini aç/kapat."""
-        self.show_borders = not self.show_borders
-        self.update_borders()
-
 
     def _add_help_button(self):
         """Kamera görüntüsünün üzerine '?' butonu ekler."""
