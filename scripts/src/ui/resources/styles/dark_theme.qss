@@ -4,7 +4,7 @@ QMainWindow {
 }
 
 QPushButton {
-    background-color: #404040;
+    background-color: #ff0000 !important;
     border: 1px solid #606060;
     border-radius: 5px;
     padding: 8px;
@@ -13,12 +13,12 @@ QPushButton {
 }
 
 QPushButton:hover {
-    background-color: #505050;
+    background-color: #ff3333;
     border: 1px solid #707070;
 }
 
 QPushButton:pressed {
-    background-color: #303030;
+    background-color: #990000;
     border: 1px solid #505050;
 }
 
@@ -88,7 +88,7 @@ QSlider::handle:vertical {
 }
 
 QToolButton {
-    background-color: #404040;
+    background-color: #ff0000 !important;
     border: 1px solid #606060;
     border-radius: 5px;
     padding: 6px;
@@ -96,11 +96,11 @@ QToolButton {
 }
 
 QToolButton:hover {
-    background-color: #505050;
+    background-color: #ff3333;
 }
 
 QToolButton:pressed {
-    background-color: #303030;
+    background-color: #990000;
 }
 
 /* Scroll bar stilleri */
